@@ -1,3 +1,6 @@
+using Application.Activities;
+using Application.Core;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Persistence;
 
@@ -15,6 +18,9 @@ builder.Services.AddDbContext<DataContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+builder.Services.AddMediatR(typeof(List.Handler));
+builder.Services.AddAutoMapper(typeof(MappingProfiles).Assembly);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -30,17 +36,19 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-using var scope = app.Services.CreateScope();
-var services = scope.ServiceProvider;
+using var myscope = app.Services.CreateScope();
+var myservices = myscope.ServiceProvider;
 try
 {
-    var context = services.GetRequiredService<DataContext>();
+    var context = myservices.GetRequiredService<DataContext>();
     await context.Database.MigrateAsync();
     await Seed.SeedData(context);
 }
 catch (Exception ex)
 {
-    var logger = services.GetRequiredService<ILogger>();
+    var logger = myservices.GetRequiredService<ILogger>();
     logger.LogError(ex, "An error occured during migration.");
 }
+
+
 app.Run();
